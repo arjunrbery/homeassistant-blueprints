@@ -110,10 +110,11 @@ action:
       - conditions:
           - condition: trigger
             platform: time
-          - condition: time
-            after: !input trigger_time
-            before: >
-              {{ (as_timestamp(now()) + 60) | timestamp_custom('%H:%M:%S') }}
+          - condition: template
+            value_template: >
+              {{ trigger.id == 'time' and
+                 trigger.now.hour == (strptime(input_datetime.trigger_time, '%H:%M:%S').time().hour) and
+                 trigger.now.minute == (strptime(input_datetime.trigger_time, '%H:%M:%S').time().minute) }}
           - condition: template
             value_template: >
               {{ (now().timestamp() - states(_entity).attributes.timestamp) > (_window * 3600) }}
