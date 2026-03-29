@@ -108,11 +108,14 @@ blueprint:
           default: Maintenance for {{ device }} was not completed.
           selector:
             text:
-        notify_service:
-          name: Notification Service
-          default: notify.mobile_app_phone
-          selector:
-            text:
+        missed_section:
+            name: Missed Alert Settings
+            input:
+              notify_service:
+                name: Notification Service
+                default: notify.mobile_app_phone
+                selector:
+                  text: {}
 
     reset_section:
       name: Manual Reset Settings
