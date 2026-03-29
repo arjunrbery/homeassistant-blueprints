@@ -145,23 +145,29 @@ variables:
 trigger:
   - platform: time
     at: !input trigger_time
+    id: check_trigger
   - platform: time
     at: !input clear_time
+    id: clear_trigger
     enabled: !input enable_auto_clear
   - platform: state
     entity_id: !input input_datetime_entity
+    id: datetime_change
   - platform: device
     type: turned_on
     device_id: "{{ device_id(_reset_button) }}"
     domain: input_button
+    id: button_press
     enabled: "{{ _reset_button | length > 0 }}"
   - platform: device
     type: turned_on
     device_id: "{{ device_id(_reset_button) }}"
     domain: button
+    id: button_press
     enabled: "{{ _reset_button | length > 0 }}"
   - platform: tag
     tag_id: !input reset_tag_id
+    id: tag_scan
     enabled: "{{ _reset_tag_id != '' }}"
 
 condition:
@@ -177,12 +183,8 @@ condition:
 action:
   - choose:
       - conditions:
-          - condition: template
-            value_template: "{{ trigger.platform == 'time' }}"
-          - condition: template
-            value_template: >
-              {{ trigger.now.hour == (strptime(input_datetime.trigger_time, '%H:%M:%S').time().hour) and
-                 trigger.now.minute == (strptime(input_datetime.trigger_time, '%H:%M:%S').time().minute) }}
+          - condition: trigger
+            id: check_trigger
           - condition: template
             value_template: >
               {{ (now().timestamp() - states(_entity).attributes.timestamp) > (_window * 3600) }}
@@ -202,12 +204,8 @@ action:
                 tag: "{{ _device | lower | replace(' ', '_') }}_maintenance"
 
       - conditions:
-          - condition: template
-            value_template: "{{ trigger.platform == 'time' }}"
-          - condition: template
-            value_template: >
-              {{ trigger.now.hour == (strptime(input_datetime.clear_time, '%H:%M:%S').time().hour) and
-                 trigger.now.minute == (strptime(input_datetime.clear_time, '%H:%M:%S').time().minute) }}
+          - condition: trigger
+            id: check_trigger
           - condition: template
             value_template: "{{ _enable_missed }}"
           - condition: template
@@ -220,12 +218,14 @@ action:
               message: "{{ !input missed_message }}"
 
       - conditions:
-          - condition: template
-            value_template: >
-              {{ (trigger.platform == 'time' and trigger.id == 'time_1') or
-                 trigger.entity_id == _entity or
-                 (trigger.platform == 'device' and _reset_button | length > 0) or
-                 (trigger.platform == 'tag' and _reset_tag_id != '') }}
+          - condition: trigger
+            id: clear_trigger
+          - condition: trigger
+            id: datetime_change
+          - condition: trigger
+            id: button_press
+          - condition: trigger
+            id: tag_scan
         sequence:
           - service: "{{ _notify_service }}"
             data:
