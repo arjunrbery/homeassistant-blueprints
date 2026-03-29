@@ -3,7 +3,6 @@ blueprint:
   description: Generic notification system with weekly/monthly triggers, manual reset, and optional alerts.
   domain: automation
   input:
-    # --- Trigger Section ---
     trigger_section:
       name: Trigger Settings
       icon: mdi:clock-start
@@ -61,7 +60,6 @@ blueprint:
           selector:
             text:
 
-    # --- Clearance Section ---
     clearance_section:
       name: Clearance Settings
       icon: mdi:check-circle
@@ -83,7 +81,6 @@ blueprint:
             select:
               options: [mon, tue, wed, thu, fri, sat, sun]
 
-    # --- Missed Section ---
     missed_section:
       name: Missed Alert Settings
       icon: mdi:alert-circle
@@ -113,11 +110,10 @@ blueprint:
             text:
         notify_service:
           name: Notification Service
+          default: notify.mobile_app_phone
           selector:
-            service:
-              domain: notify
+            text:
 
-    # --- Manual Reset Section ---
     reset_section:
       name: Manual Reset Settings
       icon: mdi:restart
@@ -238,4 +234,4 @@ action:
                 tag: "{{ _device | lower | replace(' ', '_') }}_maintenance"
 
     default: []
-mode: single   
+mode: singleCopied!   
