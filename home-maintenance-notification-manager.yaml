@@ -4,122 +4,92 @@ blueprint:
   domain: automation
   input:
     # --- Trigger Section ---
-    trigger_section:
-      name: Trigger Settings
-      description: Configure when and how the alert is triggered.
-      icon: mdi:clock-start
-      input:
-        device:
-          name: Device Name
-          default: Device
-          selector:
-            text:
-        trigger_time:
-          name: Trigger Time
-          description: Time to check if maintenance was completed.
-          default: "17:00:00"
-          selector:
-            time:
-        trigger_weekday:
-          name: Trigger Weekday
-          description: Day of the week to trigger the check.
-          default: mon
-          selector:
-            select:
-              options:
-                - mon
-                - tue
-                - wed
-                - thu
-                - fri
-                - sat
-                - sun
-        input_datetime_entity:
-          name: Input Datetime Entity
-          description: Tracks when maintenance was last performed.
-          selector:
-            entity:
-              domain: input_datetime
-        notification_window_hours:
-          name: Notification Window
-          description: Hours within which maintenance is considered on time.
-          default: 5
-          selector:
-            number:
-              min: 0
-              max: 72
-              unit_of_measurement: hours
-        notification_title:
-          name: Notification Title
-          default: Maintenance Alert
-          selector:
-            text:
-        notification_message:
-          name: Notification Message
-          default: Time to perform maintenance on {{ device }}.
-          selector:
-            text:
-        notify_service:
-          name: Notification Service
-          default: notify.mobile_app_phone
-          selector:
-            text:
+    device:
+      name: Device Name
+      default: Device
+      selector:
+        text:
+    trigger_time:
+      name: Trigger Time
+      default: "17:00:00"
+      selector:
+        time:
+    trigger_weekday:
+      name: Trigger Weekday
+      default: mon
+      selector:
+        select:
+          options: [mon, tue, wed, thu, fri, sat, sun]
+    input_datetime_entity:
+      name: Input Datetime Entity
+      selector:
+        entity:
+          domain: input_datetime
+    notification_window_hours:
+      name: Notification Window (Hours)
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 72
+          unit_of_measurement: hours
+    notification_title:
+      name: Notification Title
+      default: Maintenance Alert
+      selector:
+        text:
+    notification_message:
+      name: Notification Message
+      default: Time to perform maintenance on {{ device }}.
+      selector:
+        text:
+    notify_service:
+      name: Notification Service
+      default: notify.mobile_app_phone
+      selector:
+        text:
 
     # --- Clearance Section ---
-    clearance_section:
-      name: Clearance Settings
-      description: Configure when and how the notification is cleared.
-      icon: mdi:check-circle
-      input:
-        enable_auto_clear:
-          name: Enable Auto-Clear
-          description: Automatically clear notification on schedule.
-          default: true
-          selector:
-            boolean:
-        clear_time:
-          name: Clear Time
-          description: Time to clear notification if not done manually.
-          default: "05:00:00"
-          selector:
-            time:
-        clear_weekday:
-          name: Clear Weekday
-          description: Day to clear notification.
-          default: tue
-          selector:
-            select:
-              options:
-                - mon
-                - tue
-                - wed
-                - thu
-                - fri
-                - sat
-                - sun
+    enable_auto_clear:
+      name: Enable Auto-Clear
+      default: true
+      selector:
+        boolean:
+    clear_time:
+      name: Clear Time
+      default: "05:00:00"
+      selector:
+        time:
+    clear_weekday:
+      name: Clear Weekday
+      default: tue
+      selector:
+        select:
+          options: [mon, tue, wed, thu, fri, sat, sun]
 
     # --- Missed Section ---
-    missed_section:
-      name: Missed Alert Settings
-      description: Optional alert if maintenance was missed.
-      icon: mdi:alert-circle
-      input:
-        enable_missed_alert:
-          name: Enable Missed Alert
-          description: Send alert if maintenance was not completed.
-          default: true
-          selector:
-            boolean:
-        missed_title:
-          name: Missed Alert Title
-          default: Maintenance Missed
-          selector:
-            text:
-        missed_message:
-          name: Missed Alert Message
-          default: Maintenance for {{ device }} was not completed.
-          selector:
-            text:
+    enable_missed_alert:
+      name: Enable Missed Alert
+      default: true
+      selector:
+        boolean:
+    missed_title:
+      name: Missed Alert Title
+      default: Maintenance Missed
+      selector:
+        text:
+    missed_message:
+      name: Missed Alert Message
+      default: Maintenance for {{ device }} was not completed.
+      selector:
+        text:
+
+variables:
+  _device: !input device
+  _entity: !input input_datetime_entity
+  _window: !input notification_window_hours
+  _enable_missed: !input enable_missed_alert
+  _enable_clear: !input enable_auto_clear
 
 trigger:
   - platform: time
@@ -139,21 +109,19 @@ action:
       # Send alert if not done within window
       - conditions:
           - condition: trigger
-            id: time
+            platform: time
           - condition: time
             after: !input trigger_time
             before: >
               {{ (as_timestamp(now()) + 60) | timestamp_custom('%H:%M:%S') }}
           - condition: template
             value_template: >
-              {{ (now().timestamp() - states[trigger.entity_id].attributes.timestamp)
-                 > (input_datetime.notification_window_hours * 3600) }}
+              {{ (now().timestamp() - states(_entity).attributes.timestamp) > (_window * 3600) }}
         sequence:
           - service: !input notify_service
             data:
-              title: "{{ notification_title }}"
-              message: >
-                {{ notification_message }}
+              title: "{{ !input notification_title }}"
+              message: "{{ !input notification_message }}"
               data:
                 push:
                   interruption-level: critical
@@ -162,39 +130,38 @@ action:
                     critical: 1
                     volume: 0
                 sticky: true
-                tag: "{{ device | lower }}_maintenance"
+                tag: "{{ _device | lower }}_maintenance"
 
       # Send missed alert
       - conditions:
           - condition: trigger
-            id: time
+            platform: time
           - condition: time
             after: !input clear_time
             before: >
               {{ (as_timestamp(now()) + 60) | timestamp_custom('%H:%M:%S') }}
           - condition: template
-            value_template: "{{ input_datetime.enable_missed_alert }}"
+            value_template: "{{ _enable_missed }}"
           - condition: template
             value_template: >
-              {{ (now().timestamp() - states[input_datetime_entity].attributes.timestamp)
-                 > 86400 }}
+              {{ (now().timestamp() - states(_entity).attributes.timestamp) > 86400 }}
         sequence:
           - service: !input notify_service
             data:
-              title: "{{ missed_title }}"
-              message: "{{ missed_message }}"
+              title: "{{ !input missed_title }}"
+              message: "{{ !input missed_message }}"
 
       # Clear notification
       - conditions:
           - condition: template
             value_template: >
-              {{ trigger.id == "time" or trigger.entity_id == input_datetime_entity }}
+              {{ trigger.platform == 'time' or trigger.entity_id == _entity }}
         sequence:
           - service: !input notify_service
             data:
               message: clear_notification
               data:
-                tag: "{{ device | lower }}_maintenance"
+                tag: "{{ _device | lower }}_maintenance"
 
     default: []
 mode: single   
