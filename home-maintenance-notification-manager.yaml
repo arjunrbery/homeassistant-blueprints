@@ -177,8 +177,8 @@ condition:
 action:
   - choose:
       - conditions:
-          - condition: trigger
-            platform: time
+          - condition: template
+            value_template: "{{ trigger.platform == 'time' }}"
           - condition: template
             value_template: >
               {{ trigger.now.hour == (strptime(input_datetime.trigger_time, '%H:%M:%S').time().hour) and
@@ -202,8 +202,8 @@ action:
                 tag: "{{ _device | lower | replace(' ', '_') }}_maintenance"
 
       - conditions:
-          - condition: trigger
-            platform: time
+          - condition: template
+            value_template: "{{ trigger.platform == 'time' }}"
           - condition: template
             value_template: >
               {{ trigger.now.hour == (strptime(input_datetime.clear_time, '%H:%M:%S').time().hour) and
