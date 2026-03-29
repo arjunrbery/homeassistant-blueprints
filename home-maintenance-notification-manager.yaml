@@ -108,14 +108,11 @@ blueprint:
           default: Maintenance for {{ device }} was not completed.
           selector:
             text:
-        missed_section:
-            name: Missed Alert Settings
-            input:
-              notify_service:
-                name: Notification Service
-                default: notify.mobile_app_phone
-                selector:
-                  text: {}
+        notify_service:
+          name: Notification Service
+          default: notify.mobile_app_phone
+          selector:
+            text:
 
     reset_section:
       name: Manual Reset Settings
@@ -237,4 +234,4 @@ action:
                 tag: "{{ _device | lower | replace(' ', '_') }}_maintenance"
 
     default: []
-mode: singleCopied!   
+mode: single   
